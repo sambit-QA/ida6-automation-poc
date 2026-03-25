@@ -9,18 +9,21 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
 
-  // FIXED REPORTERS
   reporter: [
-    ['line'], // console output (better for CI logs)
-    ['json', { outputFile: 'results.json' }], // ✅ for Slack parsing
-    ['html'], // optional local report
-    ['allure-playwright'] // ✅ for Allure
+    ['line'],
+    ['json', { outputFile: 'results.json' }],
+    ['html'],
+    ['allure-playwright']
   ],
 
   use: {
+   
+    baseURL: 'https://dev.intelehealth.org',
+
     trace: 'on-first-retry',
   },
 
+  // ALL BROWSERS
   projects: [
     {
       name: 'chromium',
