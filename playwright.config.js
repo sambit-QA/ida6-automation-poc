@@ -6,24 +6,33 @@ export default defineConfig({
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
 
+  timeout: 60000,
+  expect: {
+    timeout: 10000,
+  },
+
   reporter: [
-    ['line'],
+    ['list'],
     ['json', { outputFile: 'results.json' }],
-    ['html'],
+    ['html', { open: 'never' }],
     ['allure-playwright']
   ],
 
   use: {
-   
     baseURL: 'https://dev.intelehealth.org',
 
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
+    ignoreHTTPSErrors: true,
   },
 
-  // ALL BROWSERS
   projects: [
     {
       name: 'chromium',
@@ -38,4 +47,6 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
+
+  outputDir: 'test-results/',
 });
