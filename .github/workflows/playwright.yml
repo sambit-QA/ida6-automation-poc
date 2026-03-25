@@ -6,14 +6,14 @@ on:
   pull_request:
 
 permissions:
-  contents: write 
+  contents: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      #  Start Notification (Slack Blocks)
+      # 🚀 Slack Start Notification
       - name: Slack Start Notification
         run: |
           curl -X POST -H 'Content-type: application/json' \
@@ -35,25 +35,38 @@ jobs:
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      #  Checkout
       - uses: actions/checkout@v4
 
+      # Node Setup
       - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - run: npm install
+      # Install dependencies
+      - name: Install Dependencies
+        run: npm install
 
-      - run: npx playwright install --with-deps
+      # Install browsers
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
 
-      # 🧪 Run Tests (capture output)
+      # Run Tests (FIXED)
       - name: Run Playwright Tests
         run: |
-          npx playwright test --reporter=json > test-results.json
+          npx playwright test --reporter=line,json,allure-playwright > test-results.json
 
-      # 📊 Extract Test Summary
+      # Debug Allure Results (optional but useful)
+      - name: Debug Allure Results
+        run: |
+          echo "Listing allure-results..."
+          ls -R allure-results || echo "No allure results found"
+
+      #  Parse Results
       - name: Parse Test Results
         id: results
         run: |
+          sudo apt-get install -y jq
           PASSED=$(jq '[.suites[].specs[].tests[].results[] | select(.status=="passed")] | length' test-results.json)
           FAILED=$(jq '[.suites[].specs[].tests[].results[] | select(.status=="failed")] | length' test-results.json)
           TOTAL=$(jq '[.suites[].specs[].tests[].results[]] | length' test-results.json)
@@ -62,20 +75,22 @@ jobs:
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
 
+      #  Install Allure CLI
       - name: Install Allure
         run: npm install -g allure-commandline --save-dev
 
+      #  Generate Report
       - name: Generate Allure Report
         run: allure generate allure-results --clean
 
-      # 🌐 Deploy Allure to GitHub Pages
+      #  Deploy to GitHub Pages
       - name: Deploy Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-report
 
-      # ✅ Success Notification (Slack Blocks)
+      # Slack Success
       - name: Slack Success Notification
         if: success()
         run: |
@@ -113,7 +128,7 @@ jobs:
           }" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      #  Failure Notification (Slack Blocks)
+      #  Slack Failure
       - name: Slack Failure Notification
         if: failure()
         run: |
