@@ -5,12 +5,15 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: write 
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      # 🚀 Start Notification (Slack Blocks)
+      #  Start Notification (Slack Blocks)
       - name: Slack Start Notification
         run: |
           curl -X POST -H 'Content-type: application/json' \
@@ -110,7 +113,7 @@ jobs:
           }" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      # ❌ Failure Notification (Slack Blocks)
+      #  Failure Notification (Slack Blocks)
       - name: Slack Failure Notification
         if: failure()
         run: |
