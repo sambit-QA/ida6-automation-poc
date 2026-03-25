@@ -35,12 +35,9 @@ test.describe('Forgot Password Module', () => {
 
     await usernameField.fill('nurse1');
     await expect(usernameField).toHaveValue('nurse1');
-
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    await expect(page.locator('.Toastify__toast--success'))
-      .toContainText('OTP sent successfully', { timeout: 7000 });
-  });
+    await page.getByRole('button', { name: 'Continue' }).click(); 
+    await expect(page.locator('.Toastify__toast--success')) .toContainText('OTP sent successfully', { timeout: 7000 }); 
+});
 
   //  Invalid Input
   test('Forgot Password with invalid username', async ({ page }) => {
