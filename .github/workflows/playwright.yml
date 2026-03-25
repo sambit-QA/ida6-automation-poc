@@ -1,4 +1,4 @@
-name: Playwright Tests + Allure + Slack (Final Fixed)
+name: Playwright Tests + Allure + Slack (Ultimate)
 
 on:
   push:
@@ -13,53 +13,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      #  Slack Start Notification (IST + Clean UI)
+      #  Slack Start Notification
       - name: Slack Start Notification
         run: |
-          TIME=$(TZ='Asia/Kolkata' date '+%d %b %Y | %I:%M %p IST')
-
           curl -X POST -H 'Content-type: application/json' \
           --data "{
-            \"blocks\": [
-              {
-                \"type\": \"header\",
-                \"text\": { \"type\": \"plain_text\", \"text\": \"🚀 Playwright Execution Started\" }
-              },
-              {
-                \"type\": \"section\",
-                \"fields\": [
-                  { \"type\": \"mrkdwn\", \"text\": \"*Repo:*\\n${{ github.repository }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Branch:*\\n${{ github.ref_name }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*User:*\\n${{ github.actor }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Time:*\\n$TIME\" }
-                ]
-              }
-            ]
+            \"text\": \" Playwright Started\nRepo: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nBy: ${{ github.actor }}\nCommit: ${{ github.sha }}\nMessage: ${{ github.event.head_commit.message }}\nTime: $(date)\"
           }" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      #  Checkout
       - uses: actions/checkout@v4
 
-      #  Node Setup
       - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      #  Install Dependencies
       - name: Install Dependencies
         run: npm install
 
-      #  Install Browsers
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      #  Run Tests (do not fail immediately)
+      #  Run Tests (DON'T FAIL PIPELINE IMMEDIATELY)
       - name: Run Playwright Tests
         run: npx playwright test || true
 
       #  Upload Screenshots & Videos
-      - name: Upload Artifacts
+      - name: Upload Artifacts (Screenshots + Videos)
         uses: actions/upload-artifact@v4
         with:
           name: test-artifacts
@@ -70,33 +50,20 @@ jobs:
 
       #  Debug JSON
       - name: Debug JSON
-        run: cat results.json || echo "No results.json found"
+        run: cat results.json || echo "No JSON found"
 
-      #  Parse Results (FIXED LOGIC)
+      #  Extract Results + Failed Tests
       - name: Parse Results
         id: results
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
 
-          if [ ! -f results.json ]; then
-            echo "No results.json found!"
-            echo "passed=0" >> $GITHUB_OUTPUT
-            echo "failed=0" >> $GITHUB_OUTPUT
-            echo "total=0" >> $GITHUB_OUTPUT
-            echo "failed_tests=None" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
           PASSED=$(jq '[.suites[].specs[].tests[].results[] | select(.status=="passed")] | length' results.json)
           FAILED=$(jq '[.suites[].specs[].tests[].results[] | select(.status=="failed")] | length' results.json)
-          TOTAL=$((PASSED + FAILED))
+          TOTAL=$(jq '[.suites[].specs[].tests[].results[]] | length' results.json)
 
-          FAILED_TESTS=$(jq -r '
-          .suites[].specs[]?.tests[]?.results[]? 
-          | select(.status=="failed") 
-          | .error?.message // "Failed Test"
-          ' results.json | paste -sd "\n" -)
+          FAILED_TESTS=$(jq -r '.suites[].specs[] | select(.tests[].results[].status=="failed") | .title' results.json | paste -sd "," -)
 
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
@@ -107,7 +74,6 @@ jobs:
       - name: Install Allure
         run: npm install -g allure-commandline --save-dev
 
-      #  Generate Allure Report
       - name: Generate Allure Report
         run: allure generate allure-results --clean
 
@@ -118,7 +84,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-report
 
-      #  Generate URLs
+      #  Save URLs
       - name: Set URLs
         id: urls
         run: |
@@ -126,100 +92,27 @@ jobs:
           echo "logs=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
           echo "artifacts=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts" >> $GITHUB_OUTPUT
 
-      #  Slack Success Notification
+      #  Slack Success
       - name: Slack Success Notification
         if: steps.results.outputs.failed == '0'
         run: |
-          TIME=$(TZ='Asia/Kolkata' date '+%d %b %Y | %I:%M %p IST')
-
           curl -X POST -H 'Content-type: application/json' \
           --data "{
-            \"blocks\": [
-              {
-                \"type\": \"header\",
-                \"text\": { \"type\": \"plain_text\", \"text\": \"✅ Test Execution Passed\" }
-              },
-              {
-                \"type\": \"section\",
-                \"fields\": [
-                  { \"type\": \"mrkdwn\", \"text\": \"*Total:*\\n${{ steps.results.outputs.total }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Passed:*\\n${{ steps.results.outputs.passed }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Failed:*\\n0\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Executed by:*\\n${{ github.actor }}\" }
-                ]
-              },
-              {
-                \"type\": \"actions\",
-                \"elements\": [
-                  {
-                    \"type\": \"button\",
-                    \"text\": { \"type\": \"plain_text\", \"text\": \"View Report\" },
-                    \"url\": \"${{ steps.urls.outputs.report }}\"
-                  },
-                  {
-                    \"type\": \"button\",
-                    \"text\": { \"type\": \"plain_text\", \"text\": \"Artifacts\" },
-                    \"url\": \"${{ steps.urls.outputs.artifacts }}\"
-                  }
-                ]
-              }
-            ]
+            \"text\": \" Tests Passed\nTotal: ${{ steps.results.outputs.total }} | Passed: ${{ steps.results.outputs.passed }}\n👤 ${{ github.actor }}\n🔗 Report: ${{ steps.urls.outputs.report }}\n📂 Artifacts: ${{ steps.urls.outputs.artifacts }}\n📝 Commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}\"
           }" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      #  Slack Failure Notification
+      #  Slack Failure (WITH FAILED TEST NAMES + ARTIFACTS)
       - name: Slack Failure Notification
         if: steps.results.outputs.failed != '0'
         run: |
-          TIME=$(TZ='Asia/Kolkata' date '+%d %b %Y | %I:%M %p IST')
-
           curl -X POST -H 'Content-type: application/json' \
           --data "{
-            \"blocks\": [
-              {
-                \"type\": \"header\",
-                \"text\": { \"type\": \"plain_text\", \"text\": \"❌ Test Execution Failed\" }
-              },
-              {
-                \"type\": \"section\",
-                \"fields\": [
-                  { \"type\": \"mrkdwn\", \"text\": \"*Total:*\\n${{ steps.results.outputs.total }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Passed:*\\n${{ steps.results.outputs.passed }}\" },
-                  { \"type\": \"mrkdwn\", \"text\": \"*Failed:*\\n${{ steps.results.outputs.failed }}\" }
-                ]
-              },
-              {
-                \"type\": \"section\",
-                \"text\": {
-                  \"type\": \"mrkdwn\",
-                  \"text\": \"*Failed Tests:*\\n${{ steps.results.outputs.failed_tests }}\"
-                }
-              },
-              {
-                \"type\": \"actions\",
-                \"elements\": [
-                  {
-                    \"type\": \"button\",
-                    \"text\": { \"type\": \"plain_text\", \"text\": \"View Report\" },
-                    \"url\": \"${{ steps.urls.outputs.report }}\"
-                  },
-                  {
-                    \"type\": \"button\",
-                    \"text\": { \"type\": \"plain_text\", \"text\": \"Artifacts\" },
-                    \"url\": \"${{ steps.urls.outputs.artifacts }}\"
-                  },
-                  {
-                    \"type\": \"button\",
-                    \"text\": { \"type\": \"plain_text\", \"text\": \"Logs\" },
-                    \"url\": \"${{ steps.urls.outputs.logs }}\"
-                  }
-                ]
-              }
-            ]
+            \"text\": \" Tests Failed\nTotal: ${{ steps.results.outputs.total }} | Failed: ${{ steps.results.outputs.failed }}\n\n🔴 Failed Tests:\n${{ steps.results.outputs.failed_tests }}\n\n👤 ${{ github.actor }}\n🕒 $(date)\n\n📊 Report: ${{ steps.urls.outputs.report }}\n📂 Download Screenshots/Videos: ${{ steps.urls.outputs.artifacts }}\n🧾 Logs: ${{ steps.urls.outputs.logs }}\n📝 Commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}\"
           }" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      #  Fail pipeline at end
+      #  Fail job at end if tests failed
       - name: Fail Job
         if: steps.results.outputs.failed != '0'
         run: exit 1
