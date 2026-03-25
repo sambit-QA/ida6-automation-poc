@@ -35,26 +35,21 @@ jobs:
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      # 📦 Checkout
       - uses: actions/checkout@v4
 
-      # 🟢 Node Setup
       - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 📥 Install dependencies
       - name: Install Dependencies
         run: npm install
 
-      # 🌐 Install browsers
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      # 🧪 Run Tests (🔥 FIXED - clean JSON + Allure)
+      
       - name: Run Playwright Tests
-        run: |
-          npx playwright test --reporter=json=results.json,allure-playwright
+        run: npx playwright test
 
       # 🔍 Debug Allure Results
       - name: Debug Allure Results
@@ -62,7 +57,7 @@ jobs:
           echo "Listing allure-results..."
           ls -R allure-results || echo "No allure results found"
 
-      # 🔍 Debug JSON (optional)
+      # 🔍 Debug JSON
       - name: Debug JSON
         run: cat results.json
 
@@ -81,22 +76,18 @@ jobs:
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
 
-      # 📊 Install Allure CLI
       - name: Install Allure
         run: npm install -g allure-commandline --save-dev
 
-      # 📈 Generate Report
       - name: Generate Allure Report
         run: allure generate allure-results --clean
 
-      # 🌐 Deploy to GitHub Pages
       - name: Deploy Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-report
 
-      # 🔗 Print Report URL
       - name: Print Report URL
         run: echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
 
