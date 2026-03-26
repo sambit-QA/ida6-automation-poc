@@ -1,4 +1,4 @@
-name: Playwright Tests + Allure + Slack (Final)
+name: Playwright Tests + Allure + Slack 
 
 on:
   push:
@@ -18,35 +18,35 @@ jobs:
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data "{
-            \"text\": \"🚀 Playwright Started\nRepo: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nBy: ${{ github.actor }}\nCommit: ${{ github.sha }}\nMessage: ${{ github.event.head_commit.message }}\nTime: $(date)\"
+            \"text\": \"🚀 Automation Test Started\nRepo: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nBy: ${{ github.actor }}\nCommit: ${{ github.sha }}\nMessage: ${{ github.event.head_commit.message }}\nTime: $(date)\"
           }" \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      # 📥 Checkout
+      #  Checkout
       - uses: actions/checkout@v4
 
-      # 🟢 Setup Node
+      #  Setup Node
       - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 📦 Install
+      #  Install
       - name: Install Dependencies
         run: npm install
 
-      # 🌐 Install Browsers
+      #  Install Browsers
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      # ▶️ Run Tests (IMPORTANT: never fail pipeline)
+      #  Run Tests (IMPORTANT: never fail pipeline)
       - name: Run Playwright Tests
         run: npx playwright test || true
 
-      # 🔍 Debug JSON (optional but useful)
+      #  Debug JSON (optional but useful)
       - name: Debug JSON
         run: cat results.json || echo "No results.json found"
 
-      # 📊 Parse Results (FIXED)
+      #  Parse Results (FIXED)
       - name: Parse Test Results
         id: results
         run: |
@@ -69,26 +69,26 @@ jobs:
           echo "failed=$FAILED" >> $GITHUB_OUTPUT
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
 
-      # 📊 Install Allure
+      #  Install Allure
       - name: Install Allure
         run: npm install -g allure-commandline --save-dev
 
-      # 📊 Generate Allure Report
+      #  Generate Allure Report
       - name: Generate Allure Report
         run: allure generate allure-results --clean || true
 
-      # 🚀 Deploy Report
+      #  Deploy Report
       - name: Deploy Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-report
 
-      # 🔗 Report URL
+      #  Report URL
       - name: Print Report URL
         run: echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
 
-      # ✅ Slack Final Notification (ALWAYS RUNS)
+      #  Slack Final Notification (ALWAYS RUNS)
       - name: Slack Final Notification
         if: always()
         run: |
