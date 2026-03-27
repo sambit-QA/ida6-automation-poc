@@ -39,7 +39,6 @@ test.describe('Forgot Password Module', () => {
     await expect(page.locator('.Toastify__toast--success')) .toContainText('OTP sent successfully', { timeout: 7000 }); 
 });
 
-  //  Invalid Input
   test('Forgot Password with invalid username', async ({ page }) => {
     const usernameField = page.getByRole('textbox', { name: 'Enter your username' });
 
